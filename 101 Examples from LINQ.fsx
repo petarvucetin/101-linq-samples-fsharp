@@ -166,3 +166,25 @@ let Linq4 =
 //    } 
 //}
 
+//  static IEnumerable<TSource> WhereIterator<TSource>(IEnumerable<TSource> source, Func<TSource, int, bool> predicate) {
+//            int index = -1;
+//            foreach (TSource element in source) {
+//                checked { index++; }
+//                if (predicate(element, index)) yield return element;
+//            }
+//        }
+
+let digits = [ "zero"; "one"; "two"; "three"; "four"; "five"; "six"; "seven"; "eight"; "nine" ];
+
+let predicate source (index:int) (result:bool) = fun op index arg -> op index arg
+ 
+let where (source:list<string>) predicate = 
+    let index = -1
+    seq {
+            for s in source do
+            let index = index + 1
+            if (predicate s index) then yield s
+        }
+
+let shortDigits = where digits (fun (x,i)-> x.Length < i)
+
