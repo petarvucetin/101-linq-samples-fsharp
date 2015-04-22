@@ -178,7 +178,7 @@ let Linq4 =
 let digits = [ "zero"; "one"; "two"; "three"; "four"; "five"; "six"; "seven"; "eight"; "nine" ];
 
 type f<'T> = 'T -> int -> bool
- 
+
 let where (source:list<string>) (predicate:f<string>) = 
     let index = ref -1
     seq {
@@ -195,3 +195,13 @@ let Linq5 =
     for digit in shortDigits do
         printfn "The word %s is shorter than its value" digit
 
+//F# Way
+let filter = fun (i, (x:string)) -> x.Length < i 
+
+let where2 digits f = 
+    digits 
+        |> Seq.mapi( fun i x -> i,x ) // convert to item, index
+        |> Seq.filter f  // where caluse
+        |> Seq.iter ( fun z-> printfn "The word %s is shorter than its value" (snd z)) 
+
+where2 digits filter
