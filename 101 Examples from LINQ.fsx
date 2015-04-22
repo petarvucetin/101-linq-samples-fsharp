@@ -330,12 +330,28 @@ let GetProductList3 =
         {ProductName = "C"; Category = "10"; UnitPrice = 4.0m}
     ]
 
-
 type anonymous3 = {ProductName:string; Category:string; Price:decimal}
 GetProductList3 |> Seq.map(fun z-> {ProductName = z.ProductName; Category = z.Category; Price = z.UnitPrice } ) |> Seq.toArray
 
-
 //Select - Indexed
+//public void Linq12() 
+//{ 
+//    int[] numbers = { 5, 4, 1, 3, 9, 8, 6, 7, 2, 0 }; 
+//  
+//    var numsInPlace = numbers.Select((num, index) => new { Num = num, InPlace = (num == index) }); 
+//  
+//    Console.WriteLine("Number: In-place?"); 
+//    foreach (var n in numsInPlace) 
+//    { 
+//        Console.WriteLine("{0}: {1}", n.Num, n.InPlace); 
+//    } 
+//}
+
+type anonymous4 = {Num:int; InPlace: bool}
+numbers 
+    |> Seq.mapi (fun x i -> {Num = i; InPlace = ( x = i) } ) 
+    |> Seq.iter (fun z-> printfn "%i:%b" z.Num z.InPlace )
+
 //Select - Filtered
 //SelectMany - Compound from 1
 //SelectMany - Compound from 2
