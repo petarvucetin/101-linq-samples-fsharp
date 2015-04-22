@@ -174,17 +174,24 @@ let Linq4 =
 //            }
 //        }
 
+//--Literal Translation--
 let digits = [ "zero"; "one"; "two"; "three"; "four"; "five"; "six"; "seven"; "eight"; "nine" ];
 
-let predicate source (index:int) (result:bool) = fun op index arg -> op index arg
+type f<'T> = 'T -> int -> bool
  
-let where (source:list<string>) predicate = 
-    let index = -1
+let where (source:list<string>) (predicate:f<string>) = 
+    let index = ref -1
     seq {
             for s in source do
-            let index = index + 1
-            if (predicate s index) then yield s
+              index := !index + 1
+              if (predicate s index.Value) then yield s
         }
 
-let shortDigits = where digits (fun (x,i)-> x.Length < i)
+let shortDigits = where digits (fun x i -> x.Length < i)
+
+let Linq5 = 
+    printfn "Short digits:"
+
+    for digit in shortDigits do
+        printfn "The word %s is shorter than its value" digit
 
