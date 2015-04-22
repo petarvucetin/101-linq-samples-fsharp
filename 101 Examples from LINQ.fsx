@@ -174,7 +174,7 @@ let Linq4 =
 //            }
 //        }
 
-//--Literal Translation--
+//C# Literal
 let digits = [ "zero"; "one"; "two"; "three"; "four"; "five"; "six"; "seven"; "eight"; "nine" ];
 
 type f<'T> = 'T -> int -> bool
@@ -196,12 +196,150 @@ let Linq5 =
         printfn "The word %s is shorter than its value" digit
 
 //F# Way
-let filter = fun (i, (x:string)) -> x.Length < i 
-
 let where2 digits f = 
     digits 
         |> Seq.mapi( fun i x -> i,x ) // convert to item, index
         |> Seq.filter f  // where caluse
-        |> Seq.iter ( fun z-> printfn "The word %s is shorter than its value" (snd z)) 
+        |> Seq.iter ( fun z-> printfn "The word %A is shorter than its value" (snd z)) 
 
-where2 digits filter
+where2 digits (fun (i, (x:string)) -> x.Length < i)
+
+
+//Select - Simple 1
+//public void Linq6() 
+//{ 
+//    int[] numbers = { 5, 4, 1, 3, 9, 8, 6, 7, 2, 0 }; 
+//  
+//    var numsPlusOne = 
+//        from n in numbers 
+//        select n + 1; 
+//  
+//    Console.WriteLine("Numbers + 1:"); 
+//    foreach (var i in numsPlusOne) 
+//    { 
+//        Console.WriteLine(i); 
+//    } 
+//}
+
+let numbers2 = [ 5; 4; 1; 3; 9; 8; 6; 7; 2; 0 ]; 
+
+printfn "Numbers + 1:"
+
+numbers2 |>  Seq.map ((+) 1) |> Seq.iter (printfn "%d")
+
+//Select - Simple 2
+//public void Linq7() 
+//{ 
+//    List<Product> products = GetProductList(); 
+//  
+//    var productNames = 
+//        from p in products 
+//        select p.ProductName; 
+//  
+//    Console.WriteLine("Product Names:"); 
+//    foreach (var productName in productNames) 
+//    { 
+//        Console.WriteLine(productName); 
+//    } 
+//}
+
+GetProductList |> Seq.map (fun z-> z.ProductName) |> Seq.toArray
+
+//Select - Transformation
+//public void Linq8() 
+//{ 
+//    int[] numbers = { 5, 4, 1, 3, 9, 8, 6, 7, 2, 0 }; 
+//    string[] strings = { "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine" }; 
+//  
+//    var textNums = 
+//        from n in numbers 
+//        select strings[n]; 
+//  
+//    Console.WriteLine("Number strings:"); 
+//    foreach (var s in textNums) 
+//    { 
+//        Console.WriteLine(s); 
+//    } 
+//}
+let strings = [| "zero"; "one"; "two"; "three"; "four"; "five"; "six"; "seven"; "eight"; "nine" |]; 
+
+numbers |> Seq.map(fun z-> strings.[z] ) |> Seq.toArray
+
+//Select - Anonymous Types 1
+//public void Linq9() 
+//{ 
+//    string[] words = { "aPPLE", "BlUeBeRrY", "cHeRry" }; 
+//  
+//    var upperLowerWords = 
+//        from w in words 
+//        select new { Upper = w.ToUpper(), Lower = w.ToLower() }; 
+//  
+//    foreach (var ul in upperLowerWords) 
+//    { 
+//        Console.WriteLine("Uppercase: {0}, Lowercase: {1}", ul.Upper, ul.Lower); 
+//    } 
+//}
+
+let words = [ "aPPLE"; "BlUeBeRrY"; "cHeRry" ]; 
+type anonymous = {Upper:string; Lower:string}
+
+words |> Seq.map (fun z-> {Upper=z.ToUpper();Lower = z.ToLower()}) |> Seq.toArray
+
+//Select - Anonymous Types 2
+//public void Linq10() 
+//{ 
+//    int[] numbers = { 5, 4, 1, 3, 9, 8, 6, 7, 2, 0 }; 
+//    string[] strings = { "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine" }; 
+//  
+//    var digitOddEvens = 
+//        from n in numbers 
+//        select new { Digit = strings[n], Even = (n % 2 == 0) }; 
+//  
+//    foreach (var d in digitOddEvens) 
+//    { 
+//        Console.WriteLine("The digit {0} is {1}.", d.Digit, d.Even ? "even" : "odd"); 
+//    } 
+//}
+
+type anonymous2 = {Digit:string; Even:bool}
+numbers |> Seq.map(fun z-> {Digit = strings.[z]; Even = (z % 2 = 0) } ) |> Seq.toArray
+
+//Select - Anonymous Types 3
+
+//public void Linq11() 
+//{ 
+//    List<Product> products = GetProductList(); 
+//  
+//    var productInfos = 
+//        from p in products 
+//        select new { p.ProductName, p.Category, Price = p.UnitPrice }; 
+//  
+//    Console.WriteLine("Product Info:"); 
+//    foreach (var productInfo in productInfos) 
+//    { 
+//        Console.WriteLine("{0} is in the category {1} and costs {2} per unit.", productInfo.ProductName, productInfo.Category, productInfo.Price); 
+//    } 
+//}
+
+type Product3 = {ProductName: string; Category:string; UnitPrice:decimal}
+ 
+let GetProductList3 = 
+    [
+        {ProductName = "A"; Category = "1"; UnitPrice  = 1.0m} 
+        {ProductName = "B"; Category = "5"; UnitPrice  = 2.0m}
+        {ProductName = "C"; Category = "10"; UnitPrice = 4.0m}
+    ]
+
+
+type anonymous3 = {ProductName:string; Category:string; Price:decimal}
+GetProductList3 |> Seq.map(fun z-> {ProductName = z.ProductName; Category = z.Category; Price = z.UnitPrice } ) |> Seq.toArray
+
+
+//Select - Indexed
+//Select - Filtered
+//SelectMany - Compound from 1
+//SelectMany - Compound from 2
+//SelectMany - Compound from 3
+//SelectMany - from Assignment
+//SelectMany - Multiple from
+//SelectMany - Indexed
