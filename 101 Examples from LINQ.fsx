@@ -353,7 +353,64 @@ numbers
     |> Seq.iter (fun z-> printfn "%i:%b" z.Num z.InPlace )
 
 //Select - Filtered
+//public void Linq13() 
+//{ 
+//    int[] numbers = { 5, 4, 1, 3, 9, 8, 6, 7, 2, 0 }; 
+//    string[] digits = { "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine" }; 
+//  
+//    var lowNums = 
+//        from n in numbers 
+//        where n < 5 
+//        select digits[n]; 
+//  
+//    Console.WriteLine("Numbers < 5:"); 
+//    foreach (var num in lowNums) 
+//    { 
+//        Console.WriteLine(num); 
+//    } 
+//}
+
+printfn "Numbers < 5:"
+let lowNums = 
+    numbers 
+        |> Seq.filter(fun z -> z < 5) 
+        |> Seq.map(fun z-> digits.[z])
+
+for num in lowNums do
+    printfn "%s" num
+
 //SelectMany - Compound from 1
+//public void Linq14() 
+//{ 
+//    int[] numbersA = { 0, 2, 4, 5, 6, 8, 9 }; 
+//    int[] numbersB = { 1, 3, 5, 7, 8 }; 
+//  
+//    var pairs = 
+//        from a in numbersA 
+//        from b in numbersB 
+//        where a < b 
+//        select new { a, b }; 
+//  
+//    Console.WriteLine("Pairs where a < b:"); 
+//    foreach (var pair in pairs) 
+//    { 
+//        Console.WriteLine("{0} is less than {1}", pair.a, pair.b); 
+//    } 
+//}
+let numbersA = [ 0; 2; 4; 5; 6; 8; 9 ]; 
+let numbersB = [ 1; 3; 5; 7; 8 ]; 
+
+let pairs =
+    numbersA 
+        |> List.collect(fun a-> 
+            numbersB |> List.filter (fun b-> a < b) 
+                     |> List.map (fun y -> (a,y)))
+
+printfn "Pairs where a < b:"
+for pair in pairs do
+    printfn "%i is less than %i" (fst(pair)) (snd(pair))
+
+
 //SelectMany - Compound from 2
 //SelectMany - Compound from 3
 //SelectMany - from Assignment
