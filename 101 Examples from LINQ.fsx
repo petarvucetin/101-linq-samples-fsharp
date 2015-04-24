@@ -434,59 +434,76 @@ GetCustomers
 
 
 //Object dumper
-let (|Date|_|) (o:System.Object) =
-  if (o.GetType()) = typeof<System.DateTime> then Some("DATE")
-  else None
 
+type IWriter = 
+    abstract member Write: string->unit
+    abstract member WriteLine: unit
+    abstract member WriteIndent: int -> unit
 
-let Write (s:string) (writer:System.IO.TextWriter) =
-    match s with
-        | null -> ()
-        | _ -> (writer.Write s)
-    s.Length
+let Writer (writer:System.IO.TextWriter) = 
+    {
+        new IWriter with 
+            member x.Write (s:string) = 
+                match s with
+                    | null -> ()
+                    | _ -> (writer.Write s)
+            member x.WriteLine =
+                writer.WriteLine()
+            member x.WriteIndent (level:int) = 
+                for i in 1..level do writer.Write "  ";
+    }
 
-let WriteIdent level (writer:System.IO.TextWriter) = 
-    for i in 1..level do writer.Write "  ";
-
-let WriteValue (o:System.Object) (writer:System.IO.TextWriter) =
+let WriteObject (w:IWriter) (o:System.Object) =
     match o with 
-      | null -> Write "null" writer
+      | null -> w.Write "null"
       | _ -> match o with 
-              | o when o.GetType() = typeof<System.DateTime> -> Write ((o:?>System.DateTime).ToShortDateString()) writer
-              | o when o.GetType() = typeof<System.ValueType> || o.GetType() = typeof<string> -> Write (o.ToString()) writer
-              | o when o.GetType() = typeof<System.Collections.IEnumerable> -> Write "..." writer
-              | _ -> 0 
+              | :? System.DateTime  as d ->  w.Write (d.ToShortDateString()) 
+              | :? string           as d ->  w.Write d 
+              | :? System.ValueType as d ->  w.Write (d.ToString()) 
+              | :? System.Collections.IEnumerable as d ->  w.Write "..." 
+              | _ -> ()
 
-//    private void WriteValue(object o) {
-//        if (o == null) {
-//            Write("null");
-//        }
-//        else if (o is DateTime) {
-//            Write(((DateTime)o).ToShortDateString());
-//        }
-//        else if (o is ValueType || o is string) {
-//            Write(o.ToString());
-//        }
-//        else if (o is IEnumerable) {
-//            Write("...");
-//        }
-//        else {
-//            Write("{ }");
-//        }
-//    }
+let WriteValueType (w:IWriter) (level:int) (prefix:string) (o:System.Object) =
+    w.WriteIndent level
+    w.Write prefix
+    WriteObject w o
+    w.WriteLine
 
-let writeObject prefix o = 
-    match o with 
-        | null | ValuType | string -> (WriteIndent) (WritePrefix) (WriteValue o) (WriteLine)
+let WriteEnumerableType (w:IWriter) (i:System.Collections.IEnumerable) (level:int) = 
+    let prefix = ""
+    for element in i do
+         WriteValueType w level prefix element
 
+let WriteComplexType (w:IWriter) (level:int) (prefix:string) (o:System.Object) =
+    let members = o.GetType().GetMembers(System.Reflection.BindingFlags.Public ||| System.Reflection.BindingFlags.Instance)
+    for m in members do
+        match m with
+            | :? System.Reflection.FieldInfo  as d -> 
+                w.Write (sprintf "Name %s = " m.Name)
+                WriteObject w (d.GetValue(o))
+                w.WriteLine
+            | :? System.Reflection.PropertyInfo as d -> 
+                w.Write (sprintf "Name %s = " m.Name)
+                WriteObject w (d.GetValue(o))
+                w.WriteLine
+            | _ -> ()
+    
 
-case: null, ValueType or String
-case: IEnumerable
-none of the above: Use Reflection and recurse every property
+type test = {FirstName:string; LastName:string; Orders: Order[]}
+type test2 (firstName:string, lastName:string, orders:Order[]) = 
+    [<DefaultValue>] val mutable x : int
+    member x.FirstName = firstName
+    member x.LastName = lastName
+    member x.Orders = orders
 
-//use active pattern to recgonize the type
-  //keep calling the pattern
+WriteComplexType (Writer(System.Console.Out)) 0 "test" (test2("Petar", "V", [||]))
 
+WriteComplexType (Writer(System.Console.Out)) 0 "test" {FirstName="Petar"; LastName="V"; Orders = [||]}
+
+//let testCollection = System.Collections.Generic.List<string>()
+//testCollection.Add "Hello"
+//testCollection.Add "World"
+//WriteI (Writer(System.Console.Out)) testCollection 3;;
 
 //TODO: ObjectDumper.Write
 //private void WriteObject(string prefix, object o) {
@@ -583,3 +600,10 @@ none of the above: Use Reflection and recurse every property
 //SelectMany - from Assignment
 //SelectMany - Multiple from
 //SelectMany - Indexed
+
+#if COMPILED
+module BoilerPlateForForm = 
+    [<System.STAThread>]
+    do ()
+    do System.Windows.Forms.Application.Run()
+#endif
