@@ -121,20 +121,20 @@ let Linq3 =
 //        } 
 //    } 
 
-type Order = {ID:int; OrderDate:System.DateTime }
+type Order = {ID:int; OrderDate:System.DateTime;Total:decimal }
 type Customer = {CustomerId:int; CompanyName: string; Region:string; Orders:Order[]}
  
 let GetCustomers = 
     [
         {CustomerId = 0; CompanyName = "A"; Region="WA"; 
             Orders = [|
-                        {ID=1;OrderDate=new System.DateTime(2015,1,1)}
-                        {ID=2;OrderDate=new System.DateTime(2015,1,2)}
+                        {ID=1;OrderDate=new System.DateTime(2015,1,1);Total=10.0m}
+                        {ID=2;OrderDate=new System.DateTime(2015,1,2);Total=30.0m}
                       |]
         };
         {CustomerId = 1; CompanyName = "B"; Region="CA"; 
             Orders = [|
-                        {ID=1;OrderDate=new System.DateTime(2015,1,1)}
+                        {ID=1;OrderDate=new System.DateTime(2015,1,1); Total=5.0m}
                       |]
 
         };
@@ -412,7 +412,174 @@ for pair in pairs do
 
 
 //SelectMany - Compound from 2
+//public void Linq15() 
+//{ 
+//    List<Customer> customers = GetCustomerList(); 
+//  
+//    var orders = 
+//        from c in customers 
+//        from o in c.Orders 
+//        where o.Total < 500.00M 
+//        select new { c.CustomerID, o.OrderID, o.Total }; 
+//  
+//    ObjectDumper.Write(orders); 
+//}
+
+type anonymous5 = {CustomerId:int; OrderId:int; Total:decimal;}
+GetCustomers 
+    |> List.collect(fun c-> 
+        c.Orders |> Seq.filter(fun o -> o.Total < 500.0m) 
+                 |> Seq.toList
+                 |> List.map(fun o -> {CustomerId = c.CustomerId; OrderId = o.ID; Total = o.Total}) )
+
+
+//Object dumper
+let (|Date|_|) (o:System.Object) =
+  if (o.GetType()) = typeof<System.DateTime> then Some("DATE")
+  else None
+
+
+let Write (s:string) (writer:System.IO.TextWriter) =
+    match s with
+        | null -> ()
+        | _ -> (writer.Write s)
+    s.Length
+
+let WriteIdent level (writer:System.IO.TextWriter) = 
+    for i in 1..level do writer.Write "  ";
+
+let WriteValue (o:System.Object) (writer:System.IO.TextWriter) =
+    match o with 
+      | null -> Write "null" writer
+      | _ -> match o with 
+              | o when o.GetType() = typeof<System.DateTime> -> Write ((o:?>System.DateTime).ToShortDateString()) writer
+              | o when o.GetType() = typeof<System.ValueType> || o.GetType() = typeof<string> -> Write (o.ToString()) writer
+              | o when o.GetType() = typeof<System.Collections.IEnumerable> -> Write "..." writer
+              | _ -> 0 
+
+//    private void WriteValue(object o) {
+//        if (o == null) {
+//            Write("null");
+//        }
+//        else if (o is DateTime) {
+//            Write(((DateTime)o).ToShortDateString());
+//        }
+//        else if (o is ValueType || o is string) {
+//            Write(o.ToString());
+//        }
+//        else if (o is IEnumerable) {
+//            Write("...");
+//        }
+//        else {
+//            Write("{ }");
+//        }
+//    }
+
+let writeObject prefix o = 
+    match o with 
+        | null | ValuType | string -> (WriteIndent) (WritePrefix) (WriteValue o) (WriteLine)
+
+
+case: null, ValueType or String
+case: IEnumerable
+none of the above: Use Reflection and recurse every property
+
+//use active pattern to recgonize the type
+  //keep calling the pattern
+
+
+//TODO: ObjectDumper.Write
+//private void WriteObject(string prefix, object o) {
+//        if (o == null || o is ValueType || o is string) {
+//            WriteIndent();
+//            Write(prefix);
+//            WriteValue(o);
+//            WriteLine();
+//        }
+//        else if (o is IEnumerable) {
+//            foreach (object element in (IEnumerable)o) {
+//                if (element is IEnumerable && !(element is string)) {
+//                    WriteIndent();
+//                    Write(prefix);
+//                    Write("...");
+//                    WriteLine();
+//                    if (level < depth) {
+//                        level++;
+//                        WriteObject(prefix, element);
+//                        level--;
+//                    }
+//                }
+//                else {
+//                    WriteObject(prefix, element);
+//                }
+//            }
+//        }
+//        else {
+//            MemberInfo[] members = o.GetType().GetMembers(BindingFlags.Public | BindingFlags.Instance);
+//            WriteIndent();
+//            Write(prefix);
+//            bool propWritten = false;
+//            foreach (MemberInfo m in members) {
+//                FieldInfo f = m as FieldInfo;
+//                PropertyInfo p = m as PropertyInfo;
+//                if (f != null || p != null) {
+//                    if (propWritten) {
+//                        WriteTab();
+//                    }
+//                    else {
+//                        propWritten = true;
+//                    }
+//                    Write(m.Name);
+//                    Write("=");
+//                    Type t = f != null ? f.FieldType : p.PropertyType;
+//                    if (t.IsValueType || t == typeof(string)) {
+//                        WriteValue(f != null ? f.GetValue(o) : p.GetValue(o, null));
+//                    }
+//                    else {
+//                        if (typeof(IEnumerable).IsAssignableFrom(t)) {
+//                            Write("...");
+//                        }
+//                        else {
+//                            Write("{ }");
+//                        }
+//                    }
+//                }
+//            }
+//            if (propWritten) WriteLine();
+//            if (level < depth) {
+//                foreach (MemberInfo m in members) {
+//                    FieldInfo f = m as FieldInfo;
+//                    PropertyInfo p = m as PropertyInfo;
+//                    if (f != null || p != null) {
+//                        Type t = f != null ? f.FieldType : p.PropertyType;
+//                        if (!(t.IsValueType || t == typeof(string))) {
+//                            object value = f != null ? f.GetValue(o) : p.GetValue(o, null);
+//                            if (value != null) {
+//                                level++;
+//                                WriteObject(m.Name + ": ", value);
+//                                level--;
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//    }
+
 //SelectMany - Compound from 3
+//public void Linq16() 
+//{ 
+//    List<Customer> customers = GetCustomerList(); 
+//  
+//    var orders = 
+//        from c in customers 
+//        from o in c.Orders 
+//        where o.OrderDate >= new DateTime(1998, 1, 1) 
+//        select new { c.CustomerID, o.OrderID, o.OrderDate }; 
+//  
+//    ObjectDumper.Write(orders); 
+//}
+
 //SelectMany - from Assignment
 //SelectMany - Multiple from
 //SelectMany - Indexed
