@@ -453,41 +453,30 @@ let Writer (writer:System.IO.TextWriter) =
                 for i in 1..level do writer.Write "  ";
     }
 
-let WriteObject (w:IWriter) (o:System.Object) =
+let members (o:System.Object) = o.GetType().GetMembers(System.Reflection.BindingFlags.Public ||| System.Reflection.BindingFlags.Instance)
+
+let rec WriteObject (w:IWriter) (level:int) (prefix:string) (o:System.Object) =
+    w.WriteIndent level
+    w.Write prefix
     match o with 
       | null -> w.Write "null"
       | _ -> match o with 
               | :? System.DateTime  as d ->  w.Write (d.ToShortDateString()) 
               | :? string           as d ->  w.Write d 
               | :? System.ValueType as d ->  w.Write (d.ToString()) 
-              | :? System.Collections.IEnumerable as d ->  w.Write "..." 
-              | _ -> ()
+              | :? System.Collections.IEnumerable as d -> for element in d do
+                                                            WriteObject w level prefix element
+              | _ -> for m in members o do
+                        match m with
+                            | :? System.Reflection.FieldInfo  as d -> 
+                                WriteObject w level (sprintf "Name %s = " m.Name) (d.GetValue(o))
+                                w.WriteLine
+                            | :? System.Reflection.PropertyInfo as d -> 
+                                WriteObject w level (sprintf "Name %s = " m.Name) (d.GetValue(o))
+                                w.WriteLine
+                            | _ -> ()
 
-let WriteValueType (w:IWriter) (level:int) (prefix:string) (o:System.Object) =
-    w.WriteIndent level
-    w.Write prefix
-    WriteObject w o
     w.WriteLine
-
-let WriteEnumerableType (w:IWriter) (i:System.Collections.IEnumerable) (level:int) = 
-    let prefix = ""
-    for element in i do
-         WriteValueType w level prefix element
-
-let WriteComplexType (w:IWriter) (level:int) (prefix:string) (o:System.Object) =
-    let members = o.GetType().GetMembers(System.Reflection.BindingFlags.Public ||| System.Reflection.BindingFlags.Instance)
-    for m in members do
-        match m with
-            | :? System.Reflection.FieldInfo  as d -> 
-                w.Write (sprintf "Name %s = " m.Name)
-                WriteObject w (d.GetValue(o))
-                w.WriteLine
-            | :? System.Reflection.PropertyInfo as d -> 
-                w.Write (sprintf "Name %s = " m.Name)
-                WriteObject w (d.GetValue(o))
-                w.WriteLine
-            | _ -> ()
-    
 
 type test = {FirstName:string; LastName:string; Orders: Order[]}
 type test2 (firstName:string, lastName:string, orders:Order[]) = 
@@ -496,9 +485,9 @@ type test2 (firstName:string, lastName:string, orders:Order[]) =
     member x.LastName = lastName
     member x.Orders = orders
 
-WriteComplexType (Writer(System.Console.Out)) 0 "test" (test2("Petar", "V", [||]))
+WriteObject (Writer(System.Console.Out)) 0 "" (GetCustomers)
 
-WriteComplexType (Writer(System.Console.Out)) 0 "test" {FirstName="Petar"; LastName="V"; Orders = [||]}
+WriteObject (Writer(System.Console.Out)) 0 "" {FirstName="Petar"; LastName="V"; Orders = [||]}
 
 //let testCollection = System.Collections.Generic.List<string>()
 //testCollection.Add "Hello"
