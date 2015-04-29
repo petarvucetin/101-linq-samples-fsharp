@@ -450,33 +450,44 @@ let Writer (writer:System.IO.TextWriter) =
             member x.WriteLine =
                 writer.WriteLine()
             member x.WriteIndent (level:int) = 
-                for i in 1..level do writer.Write "  ";
+                for i in 1..level do writer.Write "   ";
     }
 
 let members (o:System.Object) = o.GetType().GetMembers(System.Reflection.BindingFlags.Public ||| System.Reflection.BindingFlags.Instance)
 
-let rec WriteObject (w:IWriter) (level:int) (prefix:string) (o:System.Object) =
-    w.WriteIndent level
-    w.Write prefix
-    match o with 
-      | null -> w.Write "null"
-      | _ -> match o with 
-              | :? System.DateTime  as d ->  w.Write (d.ToShortDateString()) 
-              | :? string           as d ->  w.Write d 
-              | :? System.ValueType as d ->  w.Write (d.ToString()) 
-              | :? System.Collections.IEnumerable as d -> for element in d do
-                                                            WriteObject w level prefix element
-              | _ -> for m in members o do
-                        match m with
-                            | :? System.Reflection.FieldInfo  as d -> 
-                                WriteObject w level (sprintf "Name %s = " m.Name) (d.GetValue(o))
-                                w.WriteLine
-                            | :? System.Reflection.PropertyInfo as d -> 
-                                WriteObject w level (sprintf "Name %s = " m.Name) (d.GetValue(o))
-                                w.WriteLine
-                            | _ -> ()
+//type Cases = 
+// | Null
+// | Value of ???
+// | Complex of ???
+// | Collection of Cases
 
-    w.WriteLine
+//active pattern
+
+let printfo (o:System.Object) =
+    let rec printo (w:IWriter) (level:int) (prefix:string) (o:System.Object) =
+        w.WriteLine
+        w.WriteIndent level
+        w.Write (prefix)
+        match o with 
+          | null -> w.Write "null"
+          | _ -> match o with 
+                  | :? System.DateTime  as d ->  w.Write (d.ToShortDateString()) 
+                  | :? string           as d ->  w.Write d 
+                  | :? System.ValueType as d ->  w.Write (d.ToString()) 
+                  | :? System.Collections.IEnumerable as d ->   w.Write ("...")
+                                                                for element in d do
+                                                                  printo w (level + 1) "" element
+                  | _ -> w.Write (o.GetType().Name)
+                         for m in members o do
+                            match m with
+                                | :? System.Reflection.FieldInfo  as d -> 
+                                    printo w  (level + 1) (sprintf "%s = " m.Name) (d.GetValue(o))
+                                | :? System.Reflection.PropertyInfo as d -> 
+                                    printo w  (level + 1) (sprintf "%s = " m.Name) (d.GetValue(o))
+                                | _ -> ()
+
+    printo (Writer(System.Console.Out)) 0 "" o
+    printfn ""
 
 type test = {FirstName:string; LastName:string; Orders: Order[]}
 type test2 (firstName:string, lastName:string, orders:Order[]) = 
@@ -485,92 +496,11 @@ type test2 (firstName:string, lastName:string, orders:Order[]) =
     member x.LastName = lastName
     member x.Orders = orders
 
-WriteObject (Writer(System.Console.Out)) 0 "" (GetCustomers)
+printfo (GetCustomers)
 
-WriteObject (Writer(System.Console.Out)) 0 "" {FirstName="Petar"; LastName="V"; Orders = [||]}
+printfo {FirstName="Petar"; LastName="V"; Orders = [||]}
 
-//let testCollection = System.Collections.Generic.List<string>()
-//testCollection.Add "Hello"
-//testCollection.Add "World"
-//WriteI (Writer(System.Console.Out)) testCollection 3;;
 
-//TODO: ObjectDumper.Write
-//private void WriteObject(string prefix, object o) {
-//        if (o == null || o is ValueType || o is string) {
-//            WriteIndent();
-//            Write(prefix);
-//            WriteValue(o);
-//            WriteLine();
-//        }
-//        else if (o is IEnumerable) {
-//            foreach (object element in (IEnumerable)o) {
-//                if (element is IEnumerable && !(element is string)) {
-//                    WriteIndent();
-//                    Write(prefix);
-//                    Write("...");
-//                    WriteLine();
-//                    if (level < depth) {
-//                        level++;
-//                        WriteObject(prefix, element);
-//                        level--;
-//                    }
-//                }
-//                else {
-//                    WriteObject(prefix, element);
-//                }
-//            }
-//        }
-//        else {
-//            MemberInfo[] members = o.GetType().GetMembers(BindingFlags.Public | BindingFlags.Instance);
-//            WriteIndent();
-//            Write(prefix);
-//            bool propWritten = false;
-//            foreach (MemberInfo m in members) {
-//                FieldInfo f = m as FieldInfo;
-//                PropertyInfo p = m as PropertyInfo;
-//                if (f != null || p != null) {
-//                    if (propWritten) {
-//                        WriteTab();
-//                    }
-//                    else {
-//                        propWritten = true;
-//                    }
-//                    Write(m.Name);
-//                    Write("=");
-//                    Type t = f != null ? f.FieldType : p.PropertyType;
-//                    if (t.IsValueType || t == typeof(string)) {
-//                        WriteValue(f != null ? f.GetValue(o) : p.GetValue(o, null));
-//                    }
-//                    else {
-//                        if (typeof(IEnumerable).IsAssignableFrom(t)) {
-//                            Write("...");
-//                        }
-//                        else {
-//                            Write("{ }");
-//                        }
-//                    }
-//                }
-//            }
-//            if (propWritten) WriteLine();
-//            if (level < depth) {
-//                foreach (MemberInfo m in members) {
-//                    FieldInfo f = m as FieldInfo;
-//                    PropertyInfo p = m as PropertyInfo;
-//                    if (f != null || p != null) {
-//                        Type t = f != null ? f.FieldType : p.PropertyType;
-//                        if (!(t.IsValueType || t == typeof(string))) {
-//                            object value = f != null ? f.GetValue(o) : p.GetValue(o, null);
-//                            if (value != null) {
-//                                level++;
-//                                WriteObject(m.Name + ": ", value);
-//                                level--;
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//    }
 
 //SelectMany - Compound from 3
 //public void Linq16() 
