@@ -426,11 +426,11 @@ for pair in pairs do
 //}
 
 type anonymous5 = {CustomerId:int; OrderId:int; Total:decimal;}
-GetCustomers 
-    |> List.collect(fun c-> 
-        c.Orders |> Seq.filter(fun o -> o.Total < 500.0m) 
-                 |> Seq.toList
-                 |> List.map(fun o -> {CustomerId = c.CustomerId; OrderId = o.ID; Total = o.Total}) )
+let orders = GetCustomers 
+                |> List.collect(fun c-> 
+                    c.Orders |> Seq.filter(fun o -> o.Total < 500.0m) 
+                             |> Seq.toList
+                             |> List.map(fun o -> {CustomerId = c.CustomerId; OrderId = o.ID; Total = o.Total}) )
 
 
 //Object dumper
@@ -454,14 +454,6 @@ let Writer (writer:System.IO.TextWriter) =
     }
 
 let members (o:System.Object) = o.GetType().GetMembers(System.Reflection.BindingFlags.Public ||| System.Reflection.BindingFlags.Instance)
-
-//type Cases = 
-// | Null
-// | Value of ???
-// | Complex of ???
-// | Collection of Cases
-
-//active pattern
 
 let printfo (o:System.Object) =
     let rec printo (w:IWriter) (level:int) (prefix:string) (o:System.Object) =
@@ -489,18 +481,7 @@ let printfo (o:System.Object) =
     printo (Writer(System.Console.Out)) 0 "" o
     printfn ""
 
-type test = {FirstName:string; LastName:string; Orders: Order[]}
-type test2 (firstName:string, lastName:string, orders:Order[]) = 
-    [<DefaultValue>] val mutable x : int
-    member x.FirstName = firstName
-    member x.LastName = lastName
-    member x.Orders = orders
-
-printfo (GetCustomers)
-
-printfo {FirstName="Petar"; LastName="V"; Orders = [||]}
-
-
+printfo orders
 
 //SelectMany - Compound from 3
 //public void Linq16() 
@@ -516,8 +497,49 @@ printfo {FirstName="Petar"; LastName="V"; Orders = [||]}
 //    ObjectDumper.Write(orders); 
 //}
 
+//**same as 15
+
 //SelectMany - from Assignment
+//public void Linq17() 
+//{ 
+//    List<Customer> customers = GetCustomerList(); 
+//  
+//    var orders = 
+//        from c in customers 
+//        from o in c.Orders 
+//        where o.Total >= 2000.0M 
+//        select new { c.CustomerID, o.OrderID, o.Total }; 
+//  
+//    ObjectDumper.Write(orders); 
+//}
+//**same as 15
+
 //SelectMany - Multiple from
+//public void Linq18() 
+//{ 
+//    List<Customer> customers = GetCustomerList(); 
+//  
+//    DateTime cutoffDate = new DateTime(1997, 1, 1); 
+//  
+//    var orders = 
+//        from c in customers 
+//        where c.Region == "WA" 
+//        from o in c.Orders 
+//        where o.OrderDate >= cutoffDate 
+//        select new { c.CustomerID, o.OrderID }; 
+//  
+//    ObjectDumper.Write(orders); 
+//}
+
+let customers = (GetCustomers)
+let cutoffDate = new System.DateTime(1997, 1, 1)
+
+let orders2 = customers 
+                |> Seq.filter(fun z-> z.Region = "WA") 
+                |> Seq.map( fun z-> (z,z.Orders |> Seq.filter(fun x-> x.OrderDate >= cutoffDate)))
+
+printfo orders2
+
 //SelectMany - Indexed
 
 #if COMPILED
